@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Spent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f5f7fa;--bg2:#eef0f5;--surface:#ffffff;--surface2:#f9fafc;
+  --border:#e8eaf0;--border2:#f0f2f7;
+  --txt:#0d0f14;--txt2:#6b7280;--txt3:#b0b7c3;
+  --accent:#2563eb;--accent2:#1d4ed8;--accent-soft:#eff4ff;
+  --green:#16a34a;--green-soft:#f0fdf4;
+  --red:#dc2626;--red-soft:#fef2f2;
+  --gold:#d97706;--gold-soft:#fffbeb;
+  --gas:#2563eb;--gas-soft:#eff4ff;
+  --misc:#7c3aed;--misc-soft:#f5f3ff;
+  --r:12px;--r2:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.08);
+}
+html,body{min-height:100%;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--txt);-webkit-font-smoothing:antialiased}
+#app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+
+/* NAV */
+.nav{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;gap:3px;border:none;background:transparent;color:var(--txt3);font-size:8.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;position:relative;transition:color .15s;touch-action:manipulation;font-family:inherit}
+.nav-btn.active{color:var(--accent)}
+.nav-ico{font-size:20px;line-height:1}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;top:7px;opacity:0;transition:opacity .15s}
+.nav-btn.active .nav-dot{opacity:1}
+
+/* HEADER */
+.today-header{background:var(--surface);padding:1.5rem 1.25rem 1.1rem;flex-shrink:0;border-bottom:1px solid var(--border)}
+.today-eyebrow{font-size:11px;font-weight:600;color:var(--txt3);margin-bottom:3px;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.today-date{font-size:24px;font-weight:800;color:var(--txt);line-height:1.1;letter-spacing:-.5px;margin-bottom:1.1rem}
+.today-date em{font-style:normal;font-weight:400;font-size:16px;color:var(--txt3);margin-left:6px;letter-spacing:0}
+.budget-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.budget-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.9rem;transition:box-shadow .15s}
+.budget-card-lbl{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.budget-card-lbl.gas{color:var(--gas)}.budget-card-lbl.misc{color:var(--misc)}
+.budget-card-nums{display:flex;align-items:baseline;gap:3px}
+.budget-card-spent{font-size:22px;font-weight:800;color:var(--txt);line-height:1;letter-spacing:-.5px}
+.budget-card-of{font-size:11px;color:var(--txt3);font-weight:400}
+.budget-card-left{font-size:11px;margin-top:5px;font-weight:600}
+.budget-card-left.ok{color:var(--green)}.budget-card-left.warn{color:var(--gold)}.budget-card-left.over{color:var(--red)}
+.budget-mini-bar{height:3px;background:var(--border);border-radius:2px;margin-top:9px;overflow:hidden}
+.budget-mini-fill{height:3px;border-radius:2px;transition:width .5s ease}
+
+/* WEEK BAR */
+.week-bar{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.week-bar-lbl{font-size:11px;color:var(--txt3);font-weight:500}
+.week-reset-btn{font-size:11px;color:var(--txt2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;touch-action:manipulation;font-weight:500}
+.week-reset-btn:active{background:var(--bg2)}
+
+/* SCROLLABLE */
+.scrollable{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ADD CARD */
+.add-card{margin:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:1.1rem;box-shadow:var(--shadow)}
+.add-card-title{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:.9rem;letter-spacing:-.2px}
+
+/* TYPE TABS */
+.type-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem}
+.type-tab{padding:.75rem;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px;font-weight:600;color:var(--txt2);background:var(--bg);touch-action:manipulation;user-select:none;font-family:inherit}
+.type-tab .tab-ico{font-size:20px;display:block;margin-bottom:3px}
+.type-tab.active.gas{border-color:var(--gas);background:var(--gas-soft);color:var(--gas)}
+.type-tab.active.misc{border-color:var(--misc);background:var(--misc-soft);color:var(--misc)}
+
+/* AMOUNT */
+.amount-row{display:flex;align-items:center;gap:6px;margin-bottom:.9rem;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;transition:border-color .15s}
+.amount-row:focus-within{border-color:var(--accent)}
+.amount-prefix{font-size:22px;font-weight:700;color:var(--txt3);flex-shrink:0}
+.amount-input{flex:1;font-size:28px;font-weight:800;color:var(--txt);border:none;background:transparent;outline:none;width:100%;min-width:0;font-family:inherit;letter-spacing:-.5px}
+.amount-input::placeholder{color:var(--border)}
+.note-input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--txt);font-size:14px;outline:none;margin-bottom:.9rem;transition:border-color .15s;resize:none;font-family:inherit}
+.note-input:focus{border-color:var(--accent)}
+.note-input::placeholder{color:var(--txt3)}
+
+/* PLAN */
+.plan-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.plan-label{font-size:12px;color:var(--txt2);font-weight:500}
+.plan-date-wrap{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:.9rem}
+.plan-date-lbl{font-size:10px;font-weight:600;color:var(--txt3);margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+
+/* SUBMIT */
+.submit-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;font-family:inherit;letter-spacing:-.1px;box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.submit-btn:active{background:var(--accent2);transform:scale(.99)}
+
+/* LOG */
+.today-log{padding:0 .75rem .75rem}
+.log-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin:1rem 0 .5rem;display:none}
+.exp-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.85rem 1rem;display:flex;align-items:center;gap:10px;margin-bottom:6px;animation:slideIn .2s ease both;box-shadow:var(--shadow)}
+.exp-item.planned{border-color:var(--gold);background:var(--gold-soft)}
+.exp-ico{font-size:20px;flex-shrink:0;width:32px;text-align:center}
+.exp-body{flex:1;min-width:0}
+.exp-note{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.1px}
+.exp-meta{font-size:11px;color:var(--txt3);margin-top:2px}
+.exp-amount{font-size:15px;font-weight:700;flex-shrink:0;letter-spacing:-.3px}
+.del-btn{background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;touch-action:manipulation}
+.del-btn:active{color:var(--red)}
+.empty-today{text-align:center;padding:2.5rem 1rem;color:var(--txt3);font-size:13px;line-height:1.8}
+
+/* SCREEN HEADER */
+.screen-header{background:var(--surface);border-bottom:1px solid var(--border);padding:1.25rem 1.25rem .9rem;flex-shrink:0}
+.screen-title{font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px}
+
+/* HISTORY */
+.history-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.75rem}
+.day-group{margin-bottom:1rem;animation:fadeUp .25s ease both}
+.day-group-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;padding:0 2px}
+.day-group-date{font-size:11px;font-weight:700;color:var(--txt3);letter-spacing:.04em;text-transform:uppercase}
+.day-totals{display:flex;gap:6px}
+.day-total-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px}
+.day-total-pill.gas{background:var(--gas-soft);color:var(--gas)}
+.day-total-pill.misc{background:var(--misc-soft);color:var(--misc)}
+.day-total-pill.over{background:var(--red-soft);color:var(--red)}
+.no-data{text-align:center;padding:3rem 1rem;color:var(--txt3);font-size:13px;line-height:1.8}
+
+/* STATS */
+.stats-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.75rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:8px;box-shadow:var(--shadow)}
+.stat-card-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:.75rem}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-cell{background:var(--bg);border-radius:8px;padding:.75rem;border:1px solid var(--border2)}
+.stat-cell-lbl{font-size:10px;color:var(--txt3);margin-bottom:4px;font-weight:500}
+.stat-cell-val{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.5px}
+.stat-cell-val.green{color:var(--green)}.stat-cell-val.red{color:var(--red)}.stat-cell-val.gold{color:var(--gold)}
+.two-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.two-bar-lbl{font-size:11px;color:var(--txt2);width:48px;flex-shrink:0;font-weight:500}
+.two-bar-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.two-bar-fill{height:7px;border-radius:4px;transition:width .8s ease}
+.two-bar-val{font-size:11px;font-weight:700;width:36px;text-align:right;flex-shrink:0;color:var(--txt2)}
+
+/* BANKS */
+.banks-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.75rem}
+.bank-card{border-radius:var(--r);padding:1.1rem;margin-bottom:10px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.bank-card.gas-bank{background:#f0f5ff;border-color:#c7d7fe}
+.bank-card.misc-bank{background:#f5f3ff;border-color:#ddd6fe}
+.bank-card-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.gas-bank .bank-card-title{color:var(--gas)}.misc-bank .bank-card-title{color:var(--misc)}
+.bank-card-bal{font-size:36px;font-weight:800;color:var(--txt);line-height:1;letter-spacing:-1px;margin-bottom:4px}
+.bank-card-sub{font-size:11px;color:var(--txt3);font-weight:400}
+.bank-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.85rem}
+.bank-card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.bank-action-btn{font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;touch-action:manipulation;transition:all .15s;background:#fff}
+.gas-bank .bank-action-btn{color:var(--gas);border:1px solid #c7d7fe}
+.misc-bank .bank-action-btn{color:var(--misc);border:1px solid #ddd6fe}
+.bank-action-btn:active{opacity:.7}
+
+/* GOALS */
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.9rem;margin-bottom:8px;animation:fadeUp .2s ease both;box-shadow:var(--shadow)}
+.goal-card.done{border-color:#86efac;background:#f0fdf4}
+.goal-name{font-size:14px;font-weight:700;color:var(--txt);letter-spacing:-.2px;margin-bottom:2px}
+.goal-sub{font-size:11px;color:var(--txt3)}
+.goal-bar-track{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin:8px 0;border:1px solid var(--border)}
+.goal-bar-fill{height:5px;border-radius:3px;transition:width .6s ease}
+.goal-footer{display:flex;align-items:center;justify-content:space-between}
+.goal-amount{font-size:15px;font-weight:800;color:var(--txt);letter-spacing:-.3px}
+.goal-add-btn{font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;touch-action:manipulation;color:#fff;transition:all .15s}
+.goal-add-btn:disabled{background:var(--bg2);color:var(--txt3);cursor:not-allowed}
+
+/* BANK LOG */
+.bank-log-item{display:flex;align-items:center;gap:10px;padding:.65rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;box-shadow:var(--shadow)}
+
+/* GOAL FORM */
+.goal-form{background:var(--surface);border:1.5px dashed var(--border);border-radius:var(--r);padding:.9rem;margin-bottom:8px}
+.goal-form-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:.75rem}
+.form-input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none;margin-bottom:.6rem;transition:border-color .15s;font-family:inherit}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--txt3)}
+.form-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none;font-family:inherit}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.form-label{font-size:10px;font-weight:600;color:var(--txt3);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase;display:block}
+.add-goal-btn{width:100%;background:var(--txt);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.add-goal-btn:active{opacity:.85}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TODAY -->
+<div class="screen active" id="screenToday">
+  <div class="today-header">
+    <div class="today-eyebrow" style="display:flex;align-items:center;gap:6px" id="todayEyebrow">Monday</div>
+    <div class="today-date" id="todayDate">May 12 <em>/ Weekly Budget</em></div>
+    <div class="budget-cards">
+      <div class="budget-card">
+        <div class="budget-card-lbl gas">⛽ Gas</div>
+        <div class="budget-card-nums">
+          <div class="budget-card-spent" id="gasSpent">$0</div>
+          <div class="budget-card-of" id="gasOfLabel">/ $70</div>
+        </div>
+        <div class="budget-card-left ok" id="gasLeft">$70 left</div>
+        <div class="budget-mini-bar"><div class="budget-mini-fill" id="gasFill" style="width:0%;background:rgba(120,170,220,.8)"></div></div>
+      </div>
+      <div class="budget-card">
+        <div class="budget-card-lbl misc">🛍 Misc</div>
+        <div class="budget-card-nums">
+          <div class="budget-card-spent" id="miscSpent">$0</div>
+          <div class="budget-card-of" id="miscOfLabel">/ $70</div>
+        </div>
+        <div class="budget-card-left ok" id="miscLeft">$70 left</div>
+        <div class="budget-mini-bar"><div class="budget-mini-fill" id="miscFill" style="width:0%;background:rgba(220,180,100,.8)"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="week-bar">
+    <div class="week-bar-lbl" id="weekRangeLabel">Week of May 12</div>
+    <button class="week-reset-btn" onclick="resetWeek()">New Week</button>
+  </div>
+  <div class="scrollable">
+    <div class="add-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem">
+        <div class="add-card-title" style="margin-bottom:0">What did you spend?</div>
+        <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+          <span style="font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.06em;text-transform:uppercase">Different day</span>
+          <div id="planToggle" onclick="togglePlan()" style="width:36px;height:20px;border-radius:10px;background:var(--accent3);border:1px solid var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0">
+            <div id="planThumb" style="width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);position:absolute;top:1px;left:1px;transition:transform .2s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="plan-date-wrap" id="planDateWrap" style="display:none">
+        <div class="plan-date-lbl">Pick the date</div>
+        <input type="date" id="planDate" style="border:none;background:transparent;font-family:Lexend,sans-serif;font-size:15px;color:var(--clay);font-weight:600;outline:none;width:100%">
+        <div style="font-size:10px;color:var(--txt3);margin-top:4px">Past or future — both work</div>
+      </div>
+      <div class="type-tabs">
+        <div class="type-tab active gas" id="tabGas" onclick="setType('gas')"><span class="tab-ico">⛽</span>Gas</div>
+        <div class="type-tab misc" id="tabMisc" onclick="setType('misc')"><span class="tab-ico">🛍</span>Misc</div>
+      </div>
+      <div class="amount-row">
+        <span class="amount-prefix">$</span>
+        <input class="amount-input" id="amtIn" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <textarea class="note-input" id="noteIn" placeholder="What was it for?" rows="2" maxlength="80"></textarea>
+      <button class="submit-btn" id="submitBtn" onclick="logExpense()">Log it →</button>
+    </div>
+    <div class="today-log">
+      <div class="log-lbl" id="logLbl">This week</div>
+      <div id="todayList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BANKS -->
+<div class="screen" id="screenBanks">
+  <div class="screen-header">
+    <div class="screen-title">Banks & Spending</div>
+    <div style="font-size:11px;color:var(--txt3);margin-top:3px">Transfer from bank → spending to use money</div>
+  </div>
+  <div class="banks-body">
+
+    <!-- GAS SECTION -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:8px">⛽ Gas</div>
+
+    <!-- Gas bank + spending side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="bank-card gas-bank" style="margin-bottom:0">
+        <div class="bank-card-title">🔒 Bank</div>
+        <div class="bank-card-bal" id="gasBankBal">$5.00</div>
+        <div class="bank-card-sub">+$10/day</div>
+      </div>
+      <div class="bank-card" style="margin-bottom:0;background:#f0fdf4;border-color:#86efac">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px">💳 Spending</div>
+        <div class="bank-card-bal" id="gasSpendBal" style="font-size:28px">$0.00</div>
+        <div class="bank-card-sub">available to use</div>
+      </div>
+    </div>
+
+    <!-- Gas transfer form -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.9rem;margin-bottom:1.25rem;box-shadow:var(--shadow)">
+      <div style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:.6rem">Transfer Gas bank → spending</div>
+      <div style="display:flex;gap:8px">
+        <div style="display:flex;align-items:center;gap:4px;flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px">
+          <span style="font-size:18px;font-weight:700;color:var(--txt3)">$</span>
+          <input id="txAmt_gas" type="number" inputmode="decimal" placeholder="0.00" style="border:none;background:transparent;font-size:20px;font-weight:700;color:var(--txt);outline:none;width:100%;min-width:0;font-family:inherit">
+        </div>
+        <button onclick="transferToSpend('gas')" style="background:var(--gas);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;touch-action:manipulation">Move →</button>
+      </div>
+      <input id="txNote_gas" placeholder="What's it for? (optional)" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;color:var(--txt);outline:none;margin-top:6px">
+    </div>
+
+    <!-- MISC SECTION -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:8px">🛍 Misc</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="bank-card misc-bank" style="margin-bottom:0">
+        <div class="bank-card-title">🔒 Bank</div>
+        <div class="bank-card-bal" id="miscBankBal">$5.00</div>
+        <div class="bank-card-sub">+$10/day</div>
+      </div>
+      <div class="bank-card" style="margin-bottom:0;background:#f0fdf4;border-color:#86efac">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px">💳 Spending</div>
+        <div class="bank-card-bal" id="miscSpendBal" style="font-size:28px">$0.00</div>
+        <div class="bank-card-sub">available to use</div>
+      </div>
+    </div>
+
+    <!-- Misc transfer form -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.9rem;margin-bottom:1.25rem;box-shadow:var(--shadow)">
+      <div style="font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:.6rem">Transfer Misc bank → spending</div>
+      <div style="display:flex;gap:8px">
+        <div style="display:flex;align-items:center;gap:4px;flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px">
+          <span style="font-size:18px;font-weight:700;color:var(--txt3)">$</span>
+          <input id="txAmt_misc" type="number" inputmode="decimal" placeholder="0.00" style="border:none;background:transparent;font-size:20px;font-weight:700;color:var(--txt);outline:none;width:100%;min-width:0;font-family:inherit">
+        </div>
+        <button onclick="transferToSpend('misc')" style="background:var(--misc);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;touch-action:manipulation">Move →</button>
+      </div>
+      <input id="txNote_misc" placeholder="What's it for? (optional)" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;color:var(--txt);outline:none;margin-top:6px">
+    </div>
+
+    <!-- SAVINGS GOALS -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:8px">🎯 Future Purchase Planner</div>
+    <div id="goalsList" style="margin-bottom:8px"></div>
+    <div class="goal-form">
+      <div class="goal-form-title">Plan a future purchase</div>
+      <input id="goalName" class="form-input" placeholder="What do you want to buy? (e.g. Full tank, Shoes)">
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Total cost</label>
+          <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px">
+            <span style="font-size:16px;font-weight:700;color:var(--txt3)">$</span>
+            <input id="goalTarget" type="number" inputmode="decimal" placeholder="0" style="border:none;background:transparent;font-size:16px;font-weight:700;color:var(--txt);outline:none;width:100%;min-width:0;font-family:inherit">
+          </div>
+        </div>
+        <div>
+          <label class="form-label">Target date</label>
+          <input id="goalDate" type="date" class="form-input" style="margin-bottom:0;padding:7px 10px;font-size:13px">
+        </div>
+      </div>
+      <div style="margin-bottom:.75rem">
+        <label class="form-label">Save from bank</label>
+        <select id="goalBank" class="form-select">
+          <option value="gas">⛽ Gas bank</option>
+          <option value="misc">🛍 Misc bank</option>
+          <option value="both">Both banks equally</option>
+        </select>
+      </div>
+      <button onclick="addGoal()" class="add-goal-btn">+ Plan it</button>
+    </div>
+
+    <!-- ACTIVITY LOG -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin:1rem 0 .5rem">Activity</div>
+    <div id="bankLog"></div>
+    <div style="height:1rem"></div>
+  </div>
+</div>
+
+<div class="screen" id="screenHistory">
+  <div class="screen-header"><div class="screen-title">History</div></div>
+  <div class="history-body" id="historyBody"></div>
+</div>
+
+<!-- STATS -->
+<div class="screen" id="screenStats">
+  <div class="screen-header"><div class="screen-title">Stats 📊</div></div>
+  <div class="stats-body" id="statsBody"></div>
+</div>
+
+<nav class="nav" style="grid-template-columns:1fr 1fr 1fr 1fr">
+  <button class="nav-btn active" id="navToday" onclick="goTo('Today')"><span class="nav-ico">📅</span>Week</button>
+  <button class="nav-btn" id="navHistory" onclick="goTo('History')"><span class="nav-ico">📋</span>History</button>
+  <button class="nav-btn" id="navStats" onclick="goTo('Stats')"><span class="nav-ico">📊</span>Stats</button>
+  <button class="nav-btn" id="navBanks" onclick="goTo('Banks')"><span class="nav-ico">🏦</span>Banks</button>
+</nav>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal">
+  <div class="modal-sheet">
+    <div class="modal-title" id="modalTitle">Action</div>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────
+var GAS_DAILY=10, MISC_DAILY=10;
+var GAS_SPEND_START=0, MISC_SPEND_START=0; // spending accounts start empty
+var GAS_BANK_START=5, MISC_BANK_START=5;   // bank starts with $5 gift
+var LS='spent_v10';
+
+// ── STATE ────────────────────────────────────────────────
+var expenses=[];     // {id,ts,date,type,amount,note,planned} — debits spending account
+var transfers=[];    // {id,ts,type:'bank_to_spend',bank,amount,note} — moves bank→spending
+var savingsGoals=[]; // {id,name,target,bank,funded}
+var installDate='';
+var selType='gas', planMode=false;
+
+function save(){
+  localStorage.setItem(LS,JSON.stringify({
+    expenses:expenses,transfers:transfers,
+    savingsGoals:savingsGoals,installDate:installDate
+  }));
+}
+function load(){
+  try{
+    var d=JSON.parse(localStorage.getItem(LS)||'{}');
+    if(d.expenses)expenses=d.expenses;
+    if(d.transfers)transfers=d.transfers;
+    if(d.savingsGoals)savingsGoals=d.savingsGoals;
+    if(d.installDate)installDate=d.installDate;
+  }catch(e){}
+  if(!installDate){installDate=today();save();}
+}
+
+// ── DATE HELPERS ─────────────────────────────────────────
+function pad(n){return n<10?'0'+n:''+n;}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function fmt(n){return '$'+parseFloat(n).toFixed(2);}
+function fmtShort(n){return '$'+parseFloat(n).toFixed(0);}
+function getMonday(dateStr){
+  var d=dateStr?new Date(dateStr+'T12:00:00'):new Date();
+  var diff=d.getDay()===0?-6:1-d.getDay();
+  var mon=new Date(d);mon.setDate(d.getDate()+diff);mon.setHours(0,0,0,0);
+  return mon.getFullYear()+'-'+pad(mon.getMonth()+1)+'-'+pad(mon.getDate());
+}
+function currentWeek(){return getMonday();}
+function weekRange(monStr){
+  var mon=new Date(monStr+'T12:00:00'),sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return M[mon.getMonth()]+' '+mon.getDate()+' – '+M[sun.getMonth()]+' '+sun.getDate();
+}
+function isInWeek(dateStr,monStr){
+  var d=new Date(dateStr+'T12:00:00'),mon=new Date(monStr+'T00:00:00'),sun=new Date(monStr+'T00:00:00');
+  sun.setDate(mon.getDate()+7);return d>=mon&&d<sun;
+}
+function getAllWeeks(){
+  var wks=new Set([currentWeek()]);
+  expenses.forEach(e=>wks.add(getMonday(e.date)));
+  return [...wks].sort();
+}
+function getWeekExps(monStr){return expenses.filter(e=>isInWeek(e.date,monStr)&&!e.planned);}
+
+// ── BANK BALANCE (savings — locked) ──────────────────────
+function getBankBal(type){
+  var start=type==='gas'?GAS_BANK_START:MISC_BANK_START;
+  var daily=type==='gas'?GAS_DAILY:MISC_DAILY;
+  // Accrue $10/day for each completed past day since install
+  var d=new Date(installDate+'T12:00:00');
+  var end=new Date(today()+'T12:00:00');
+  var days=0;
+  while(d<end){days++;d.setDate(d.getDate()+1);}
+  var totalIn=start+(days*daily);
+  // Subtract transfers out to spending account
+  var txOut=transfers.filter(t=>t.bank===type).reduce((s,t)=>s+t.amount,0);
+  // Subtract goal allocations
+  var goalsOut=savingsGoals.filter(g=>g.bank===type).reduce((s,g)=>s+(g.funded||0),0);
+  return Math.max(0,Math.round((totalIn-txOut-goalsOut)*100)/100);
+}
+
+// ── SPENDING ACCOUNT BALANCE ──────────────────────────────
+function getSpendBal(type){
+  // Spending account = transfers in from bank - actual expenses
+  var txIn=transfers.filter(t=>t.bank===type).reduce((s,t)=>s+t.amount,0);
+  var spent=expenses.filter(e=>e.type===type&&!e.planned).reduce((s,e)=>s+e.amount,0);
+  return Math.max(0,Math.round((txIn-spent)*100)/100);
+}
+
+// ── TRANSFER BANK → SPENDING ──────────────────────────────
+function transferToSpend(type){
+  var bankBal=getBankBal(type);
+  if(bankBal<=0){flash('No funds in '+(type==='gas'?'Gas':'Misc')+' bank');return;}
+  var input=document.getElementById('txAmt_'+type);
+  var amt=parseFloat(input?input.value:0);
+  if(!amt||amt<=0){if(input)input.focus();return;}
+  if(amt>bankBal){flash('Only '+fmt(bankBal)+' available in bank');return;}
+  var note=document.getElementById('txNote_'+type);
+  transfers.push({
+    id:Date.now()+'',ts:Date.now(),bank:type,
+    amount:Math.round(amt*100)/100,
+    note:(note?note.value.trim():'')||'Transfer to spending'
+  });
+  save();
+  if(input)input.value='';
+  if(note)note.value='';
+  renderBanks();renderToday();
+  flash('$'+amt.toFixed(2)+' moved to '+(type==='gas'?'Gas':'Misc')+' spending ✓');
+}
+
+// ── LOG EXPENSE (deducts from spending account) ───────────
+function logExpense(){
+  var amt=parseFloat(document.getElementById('amtIn').value);
+  if(!amt||amt<=0){document.getElementById('amtIn').focus();return;}
+  var note=document.getElementById('noteIn').value.trim();
+  var tod=today(),date,planned=false;
+  if(planMode){
+    date=document.getElementById('planDate').value;
+    if(!date){document.getElementById('planDate').focus();return;}
+    planned=date>tod;
+  } else {date=tod;}
+
+  if(!planned){
+    var spendBal=getSpendBal(selType);
+    if(amt>spendBal){
+      flash('Only '+fmt(spendBal)+' in '+(selType==='gas'?'Gas':'Misc')+' spending account. Transfer from bank first.');
+      return;
+    }
+  }
+  expenses.push({id:Date.now()+'',ts:Date.now(),date:date,type:selType,
+    amount:Math.round(amt*100)/100,note:note||null,planned:planned});
+  save();
+  document.getElementById('amtIn').value='';
+  document.getElementById('noteIn').value='';
+  renderToday();renderBanks();
+  flash('Logged — '+fmt(Math.round(amt*100)/100)+' from '+(selType==='gas'?'Gas':'Misc')+' spending');
+}
+
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.del-btn');
+  if(btn){expenses=expenses.filter(x=>x.id!==btn.getAttribute('data-id'));save();renderToday();renderBanks();return;}
+  var gbtn=e.target.closest('[data-act]');
+  if(gbtn){
+    var act=gbtn.getAttribute('data-act'),gid=gbtn.getAttribute('data-gid');
+    if(act==='delg')deleteGoal(gid);
+    if(act==='addg')addToGoal(gid);
+  }
+});
+
+// ── TYPE TOGGLE ───────────────────────────────────────────
+function setType(t){
+  selType=t;
+  document.getElementById('tabGas').className='type-tab'+(t==='gas'?' active gas':'');
+  document.getElementById('tabMisc').className='type-tab'+(t==='misc'?' active misc':'');
+}
+function togglePlan(){
+  planMode=!planMode;
+  var thumb=document.getElementById('planThumb');
+  var tog=document.getElementById('planToggle');
+  var wrap=document.getElementById('planDateWrap');
+  if(planMode){
+    thumb.style.transform='translateX(16px)';tog.style.background='#2563eb';
+    wrap.style.display='block';
+    var yest=new Date();yest.setDate(yest.getDate()-1);
+    document.getElementById('planDate').value=yest.getFullYear()+'-'+pad(yest.getMonth()+1)+'-'+pad(yest.getDate());
+  } else {
+    thumb.style.transform='translateX(0)';tog.style.background='#e2e8f0';
+    wrap.style.display='none';
+  }
+}
+
+// ── RENDER TODAY ──────────────────────────────────────────
+function renderToday(){
+  var now=new Date();
+  var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('todayEyebrow').textContent=DAYS[now.getDay()];
+  document.getElementById('todayDate').innerHTML=M[now.getMonth()]+' '+now.getDate()+'<em> / Spending</em>';
+  document.getElementById('weekRangeLabel').textContent=weekRange(currentWeek());
+
+  var gasSpend=getSpendBal('gas');
+  var miscSpend=getSpendBal('misc');
+  var gasSpent=getWeekExps(currentWeek()).filter(e=>e.type==='gas').reduce((s,e)=>s+e.amount,0);
+  var miscSpent=getWeekExps(currentWeek()).filter(e=>e.type==='misc').reduce((s,e)=>s+e.amount,0);
+
+  updateCard('gas',gasSpent,gasSpend);
+  updateCard('misc',miscSpent,miscSpend);
+
+  document.getElementById('gasOfLabel').textContent='spending: '+fmt(gasSpend);
+  document.getElementById('miscOfLabel').textContent='spending: '+fmt(miscSpend);
+
+  // Week log
+  var wk=currentWeek();
+  var wExps=getWeekExps(wk).slice().reverse();
+  var lbl=document.getElementById('logLbl');
+  if(!wExps.length){
+    lbl.style.display='none';
+    document.getElementById('todayList').innerHTML='<div class="empty-today">No expenses this week.<br>Transfer from bank, then log spending.</div>';
+    return;
+  }
+  lbl.style.display='block';
+  var byDay={};
+  wExps.forEach(e=>{if(!byDay[e.date])byDay[e.date]=[];byDay[e.date].push(e);});
+  var dates=Object.keys(byDay).sort().reverse();
+  var D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var todStr=today();
+  var html='';
+  dates.forEach(date=>{
+    var exps=byDay[date];
+    var d=new Date(date+'T12:00:00');
+    var dlbl=date===todStr?'Today':D[d.getDay()]+', '+M[d.getMonth()]+' '+d.getDate();
+    var dG=exps.filter(e=>e.type==='gas').reduce((s,e)=>s+e.amount,0);
+    var dM=exps.filter(e=>e.type==='misc').reduce((s,e)=>s+e.amount,0);
+    html+='<div style="margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;padding:0 2px"><div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em">'+dlbl+'</div><div style="display:flex;gap:5px">';
+    if(dG>0)html+='<span class="day-total-pill gas">⛽ '+fmt(dG)+'</span>';
+    if(dM>0)html+='<span class="day-total-pill misc">🛍 '+fmt(dM)+'</span>';
+    html+='</div></div>';
+    exps.forEach(e=>{html+=expHTML(e,true);});
+    html+='</div>';
+  });
+  document.getElementById('todayList').innerHTML=html;
+}
+
+function updateCard(id,spent,spendBal){
+  document.getElementById(id+'Spent').textContent=fmt(spent);
+  var le=document.getElementById(id+'Left');
+  le.textContent=fmt(spendBal)+' available';
+  le.className='budget-card-left '+(spendBal<=0?'over':spendBal<10?'warn':'ok');
+  var fill=document.getElementById(id+'Fill');
+  var total=spent+spendBal;
+  var pct=total>0?Math.min(100,spent/total*100):0;
+  fill.style.width=pct+'%';
+  fill.style.background=id==='gas'?'var(--gas)':'var(--misc)';
+}
+
+function expHTML(e,showDel){
+  var ico=e.type==='gas'?'⛽':'🛍',col=e.type==='gas'?'var(--gas)':'var(--misc)';
+  var t=new Date(e.ts),time=t.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  var badge=e.planned?'<span style="font-size:9px;font-weight:700;color:var(--gold);background:var(--gold-soft);padding:2px 6px;border-radius:100px;margin-left:4px">Planned</span>':'';
+  return '<div class="exp-item'+(e.planned?' planned':'')+'"><div class="exp-ico">'+ico+'</div>'
+    +'<div class="exp-body"><div class="exp-note">'+(e.note||(e.type==='gas'?'Gas':'Misc'))+badge+'</div>'
+    +'<div class="exp-meta">'+(e.type==='gas'?'Gas':'Misc')+' · '+time+'</div></div>'
+    +'<div class="exp-amount" style="color:'+col+'">-'+fmt(e.amount)+'</div>'
+    +(showDel?'<button class="del-btn" data-id="'+e.id+'">×</button>':'')
+    +'</div>';
+}
+
+// ── RENDER BANKS ──────────────────────────────────────────
+function renderBanks(){
+  var gasB=getBankBal('gas'),miscB=getBankBal('misc');
+  var gasS=getSpendBal('gas'),miscS=getSpendBal('misc');
+  document.getElementById('gasBankBal').textContent=fmt(gasB);
+  document.getElementById('miscBankBal').textContent=fmt(miscB);
+  document.getElementById('gasSpendBal').textContent=fmt(gasS);
+  document.getElementById('miscSpendBal').textContent=fmt(miscS);
+
+  // Activity log
+  var allAct=[];
+  expenses.filter(e=>!e.planned).forEach(e=>{
+    allAct.push({ts:e.ts,ico:e.type==='gas'?'⛽':'🛍',
+      label:e.note||(e.type==='gas'?'Gas expense':'Misc expense'),
+      sub:(e.type==='gas'?'Gas':'Misc')+' spending',
+      amount:e.amount,sign:'-',col:'var(--red)'});
+  });
+  transfers.forEach(t=>{
+    allAct.push({ts:t.ts,ico:'↕',
+      label:t.note||'Bank transfer',
+      sub:(t.bank==='gas'?'Gas':'Misc')+' bank → spending',
+      amount:t.amount,sign:'+',col:'var(--green)'});
+  });
+  allAct.sort((a,b)=>b.ts-a.ts);
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var el=document.getElementById('bankLog');
+  el.innerHTML=allAct.slice(0,15).map(a=>{
+    var d=new Date(a.ts);
+    return '<div class="bank-log-item">'
+      +'<div style="font-size:20px;width:30px;text-align:center;flex-shrink:0">'+a.ico+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.label+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3);margin-top:1px">'+a.sub+' · '+M[d.getMonth()]+' '+d.getDate()+'</div></div>'
+      +'<div style="font-size:15px;font-weight:700;color:'+a.col+';letter-spacing:-.3px;flex-shrink:0">'+a.sign+fmt(a.amount)+'</div>'
+      +'</div>';
+  }).join('')||'<div style="text-align:center;padding:1.5rem;color:var(--txt3);font-size:13px">No activity yet</div>';
+
+  renderGoals();
+}
+
+// ── GOALS — Future Purchase Planner ───────────────────────
+function addGoal(){
+  var name=document.getElementById('goalName').value.trim();
+  var target=parseFloat(document.getElementById('goalTarget').value);
+  var bank=document.getElementById('goalBank').value;
+  var dateVal=document.getElementById('goalDate').value;
+  if(!name||!target||target<=0||!dateVal){flash('Fill in all fields');return;}
+  var targetDate=dateVal; // YYYY-MM-DD
+  if(targetDate<=today()){flash('Pick a future date');return;}
+  savingsGoals.push({
+    id:Date.now()+'',name:name,
+    target:Math.round(target*100)/100,
+    bank:bank,targetDate:targetDate,
+    funded:0,done:false
+  });
+  save();
+  document.getElementById('goalName').value='';
+  document.getElementById('goalTarget').value='';
+  document.getElementById('goalDate').value='';
+  renderGoals();flash('Goal planned!');
+}
+
+function daysUntil(dateStr){
+  var now=new Date();now.setHours(0,0,0,0);
+  var target=new Date(dateStr+'T00:00:00');
+  return Math.max(0,Math.round((target-now)/(1000*60*60*24)));
+}
+
+function addToGoal(id){
+  var g=savingsGoals.find(x=>x.id===id);if(!g)return;
+  var need=Math.max(0,g.target-g.funded);
+  if(need<=0){flash(g.name+' is already fully funded!');return;}
+  // Figure out how much we can pull from bank(s)
+  var gasB=getBankBal('gas'),miscB=getBankBal('misc');
+  var add=0;
+  if(g.bank==='gas')add=Math.min(need,gasB);
+  else if(g.bank==='misc')add=Math.min(need,miscB);
+  else{var half=need/2;add=Math.min(half,gasB)+Math.min(need-Math.min(half,gasB),miscB);}
+  add=Math.round(add*100)/100;
+  if(add<=0){flash('Not enough in bank');return;}
+  g.funded=Math.round((g.funded+add)*100)/100;
+  if(g.funded>=g.target){g.funded=g.target;g.done=true;}
+  save();renderBanks();
+  flash(g.done?g.name+' fully funded! 🎉':'Saved '+fmt(add)+' toward '+g.name);
+}
+
+function deleteGoal(id){
+  savingsGoals=savingsGoals.filter(x=>x.id!==id);save();renderGoals();
+}
+
+function renderGoals(){
+  var el=document.getElementById('goalsList');if(!el)return;
+  if(!savingsGoals.length){
+    el.innerHTML='<div style="text-align:center;padding:1rem 0;color:var(--txt3);font-size:13px">No plans yet. Add one below.</div>';return;
+  }
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  el.innerHTML=savingsGoals.map(g=>{
+    var pct=Math.min(100,Math.round(g.funded/g.target*100));
+    var days=daysUntil(g.targetDate);
+    var need=Math.max(0,g.target-g.funded);
+    var perDay=days>0?Math.ceil((need/days)*100)/100:need;
+    var onTrack=false;
+    // Check if current bank accrual rate can cover it
+    var dailyRate=g.bank==='both'?20:10;
+    onTrack=perDay<=dailyRate;
+    var col=g.bank==='gas'?'var(--gas)':g.bank==='misc'?'var(--misc)':'#8b5cf6';
+    var bankLabel=g.bank==='gas'?'⛽ Gas':g.bank==='misc'?'🛍 Misc':'⛽+🛍 Both';
+    var d=new Date(g.targetDate+'T12:00:00');
+    var dateLabel=M[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();
+    var gasB=getBankBal('gas'),miscB=getBankBal('misc');
+    var canFund=(g.bank==='gas'&&gasB>0)||(g.bank==='misc'&&miscB>0)||(g.bank==='both'&&(gasB+miscB)>0);
+    return '<div class="goal-card'+(g.done?' done':'')+'">'
+      // Header
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="goal-name">'+g.name+'</div>'
+      +'<div class="goal-sub">'+bankLabel+' · Due '+dateLabel+'</div>'
+      +'</div>'
+      +'<button data-gid="'+g.id+'" data-act="delg" style="background:none;border:none;color:var(--txt3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">×</button>'
+      +'</div>'
+      // Progress bar
+      +'<div class="goal-bar-track"><div class="goal-bar-fill" style="width:'+pct+'%;background:'+(g.done?'var(--green)':col)+'"></div></div>'
+      // Stats row
+      +(g.done
+        ?'<div style="margin-top:8px;font-size:12px;font-weight:700;color:var(--green)">✓ Fully funded — ready to spend!</div>'
+        :'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">'
+        +'<div style="background:var(--bg);border-radius:8px;padding:.5rem .6rem;text-align:center">'
+        +'<div style="font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px">Saved</div>'
+        +'<div style="font-size:14px;font-weight:800;color:var(--txt);letter-spacing:-.3px">'+fmt(g.funded)+'</div></div>'
+        +'<div style="background:var(--bg);border-radius:8px;padding:.5rem .6rem;text-align:center">'
+        +'<div style="font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px">Needed</div>'
+        +'<div style="font-size:14px;font-weight:800;color:var(--txt);letter-spacing:-.3px">'+fmt(need)+'</div></div>'
+        +'<div style="background:var(--bg);border-radius:8px;padding:.5rem .6rem;text-align:center">'
+        +'<div style="font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px">Days left</div>'
+        +'<div style="font-size:14px;font-weight:800;color:'+(days<3?'var(--red)':'var(--txt)')+';letter-spacing:-.3px">'+days+'</div></div>'
+        +'</div>'
+        // Suggestion
+        +'<div style="background:'+(onTrack?'var(--green-soft)':'var(--red-soft)')+';border-radius:8px;padding:.5rem .75rem;margin-top:8px;display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="font-size:12px;font-weight:600;color:'+(onTrack?'var(--green)':'var(--red)')+'">'+
+          (days<=0?'⚠ Overdue'
+          :onTrack?'✓ On track — save '+fmt(perDay)+'/day'
+          :'⚠ Save '+fmt(perDay)+'/day to hit goal')
+        +'</div>'
+        +'</div>'
+        // Fund button
+        +'<div style="margin-top:8px">'
+        +'<button data-gid="'+g.id+'" data-act="addg" '+(canFund&&!g.done?'':'disabled')+' class="goal-add-btn" style="width:100%;background:'+(canFund&&!g.done?col:'var(--bg2)')+'">Save to this goal now</button>'
+        +'</div>'
+      )
+      +'</div>';
+  }).join('');
+}
+
+// ── HISTORY ───────────────────────────────────────────────
+function renderHistory(){
+  var weeks=getAllWeeks().slice().reverse();
+  if(!weeks.length){document.getElementById('historyBody').innerHTML='<div class="no-data">No history yet.</div>';return;}
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var todWk=currentWeek(),html='';
+  weeks.forEach((wk,wi)=>{
+    var wExps=getWeekExps(wk);
+    if(!wExps.length&&wk!==todWk)return;
+    var gasSpent=wExps.filter(e=>e.type==='gas').reduce((s,e)=>s+e.amount,0);
+    var miscSpent=wExps.filter(e=>e.type==='misc').reduce((s,e)=>s+e.amount,0);
+    var lbl=wk===todWk?'This Week':weekRange(wk);
+    var byDay={};wExps.forEach(e=>{if(!byDay[e.date])byDay[e.date]=[];byDay[e.date].push(e);});
+    var dates=Object.keys(byDay).sort().reverse();
+    html+='<div class="day-group" style="animation-delay:'+(wi*.04)+'s">'
+      +'<div class="day-group-hdr"><div class="day-group-date">'+lbl+'</div>'
+      +'<div class="day-totals">'
+      +(gasSpent>0?'<span class="day-total-pill gas">⛽ '+fmt(gasSpent)+'</span>':'')
+      +(miscSpent>0?'<span class="day-total-pill misc">🛍 '+fmt(miscSpent)+'</span>':'')
+      +'</div></div>';
+    dates.forEach(date=>{
+      var d=new Date(date+'T12:00:00');
+      html+='<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--txt3);margin:8px 2px 4px;letter-spacing:.04em;text-transform:uppercase">'+D[d.getDay()]+' '+M[d.getMonth()]+' '+d.getDate()+'</div>';
+      byDay[date].forEach(e=>{html+=expHTML(e,false);});
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('historyBody').innerHTML=html||'<div class="no-data">No spending yet.</div>';
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function renderStats(){
+  var weeks=getAllWeeks(),wk=currentWeek();
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var wExps=getWeekExps(wk);
+  var wGas=wExps.filter(e=>e.type==='gas').reduce((s,e)=>s+e.amount,0);
+  var wMisc=wExps.filter(e=>e.type==='misc').reduce((s,e)=>s+e.amount,0);
+  var allGas=expenses.filter(e=>e.type==='gas'&&!e.planned).reduce((s,e)=>s+e.amount,0);
+  var allMisc=expenses.filter(e=>e.type==='misc'&&!e.planned).reduce((s,e)=>s+e.amount,0);
+  var avgGas=weeks.length?allGas/weeks.length:0,avgMisc=weeks.length?allMisc/weeks.length:0;
+  var dayGas=[0,0,0,0,0,0,0],dayMisc=[0,0,0,0,0,0,0];
+  expenses.filter(e=>!e.planned).forEach(e=>{var dow=new Date(e.date+'T12:00:00').getDay();if(e.type==='gas')dayGas[dow]+=e.amount;else dayMisc[dow]+=e.amount;});
+  var D=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var html='';
+  html+='<div class="stat-card"><div class="stat-card-title">Balances</div><div class="stat-grid">'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">⛽ Gas bank</div><div class="stat-cell-val green">'+fmt(getBankBal('gas'))+'</div></div>'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">🛍 Misc bank</div><div class="stat-cell-val" style="color:var(--misc)">'+fmt(getBankBal('misc'))+'</div></div>'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">⛽ Gas spending</div><div class="stat-cell-val">'+fmt(getSpendBal('gas'))+'</div></div>'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">🛍 Misc spending</div><div class="stat-cell-val">'+fmt(getSpendBal('misc'))+'</div></div>'
+    +'</div></div>';
+  if(weeks.length>0){
+    html+='<div class="stat-card"><div class="stat-card-title">Weekly Spending</div>';
+    weeks.slice(-6).forEach(w=>{
+      var e=getWeekExps(w);
+      var g=e.filter(x=>x.type==='gas').reduce((s,x)=>s+x.amount,0);
+      var m=e.filter(x=>x.type==='misc').reduce((s,x)=>s+x.amount,0);
+      var d=new Date(w+'T12:00:00'),lbl=w===wk?'Now':M[d.getMonth()]+' '+d.getDate();
+      var maxW=Math.max(g+m,1);
+      html+='<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--txt3);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase">'+lbl+'</div>'
+        +'<div class="two-bar-row"><div class="two-bar-lbl">⛽ Gas</div><div class="two-bar-track"><div class="two-bar-fill" style="width:'+Math.min(100,g/Math.max(g+m,1)*100)+'%;background:var(--gas)"></div></div><div class="two-bar-val">'+fmtShort(g)+'</div></div>'
+        +'<div class="two-bar-row"><div class="two-bar-lbl">🛍 Misc</div><div class="two-bar-track"><div class="two-bar-fill" style="width:'+Math.min(100,m/Math.max(g+m,1)*100)+'%;background:var(--misc)"></div></div><div class="two-bar-val">'+fmtShort(m)+'</div></div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  if(expenses.filter(e=>!e.planned).length){
+    var maxDay=Math.max(...dayGas.map((g,i)=>g+dayMisc[i]),1);
+    html+='<div class="stat-card"><div class="stat-card-title">Spending by Day</div>';
+    [1,2,3,4,5,6,0].forEach(dow=>{
+      var g=dayGas[dow],m=dayMisc[dow];
+      html+='<div class="two-bar-row"><div class="two-bar-lbl">'+D[dow]+'</div>'
+        +'<div class="two-bar-track" style="position:relative;height:8px;background:var(--bg2)">'
+        +'<div style="position:absolute;left:0;top:0;height:8px;border-radius:4px;background:var(--gas);width:'+Math.round(g/maxDay*100)+'%"></div>'
+        +'<div style="position:absolute;left:'+Math.round(g/maxDay*100)+'%;top:0;height:8px;border-radius:4px;background:var(--misc);width:'+Math.round(m/maxDay*100)+'%"></div>'
+        +'</div><div class="two-bar-val">'+(g+m>0?fmtShort(g+m):'—')+'</div></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div class="stat-card"><div class="stat-card-title">Averages</div><div class="stat-grid">'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">Avg gas/week</div><div class="stat-cell-val">$'+avgGas.toFixed(0)+'</div></div>'
+    +'<div class="stat-cell"><div class="stat-cell-lbl">Avg misc/week</div><div class="stat-cell-val">$'+avgMisc.toFixed(0)+'</div></div>'
+    +'</div></div>';
+  document.getElementById('statsBody').innerHTML=html;
+}
+
+function flash(msg){
+  var existing=document.getElementById('flashMsg');if(existing)existing.remove();
+  var t=document.createElement('div');t.id='flashMsg';t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#0d0f14;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.15);white-space:nowrap;max-width:90vw;text-align:center';
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';},1600);
+  setTimeout(()=>t.remove(),2000);
+}
+
+function goTo(name){
+  ['Today','History','Stats','Banks'].forEach(s=>{
+    document.getElementById('screen'+s).classList.toggle('active',s===name);
+    document.getElementById('nav'+s).classList.toggle('active',s===name);
+  });
+  if(name==='Today')renderToday();
+  if(name==='History')renderHistory();
+  if(name==='Stats')renderStats();
+  if(name==='Banks')renderBanks();
+}
+
+function resetWeek(){save();renderToday();}
+
+load();renderToday();
+</script>
+</body>
+</html>
